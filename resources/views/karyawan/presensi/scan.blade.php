@@ -65,9 +65,9 @@
                                 style="display: none;">
                                 <i class="fas fa-sync-alt me-2"></i>Switch Camera
                             </button>
-                            <button type="button" id="test-qr" class="btn btn-outline-warning btn-sm">
+                            {{-- <button type="button" id="test-qr" class="btn btn-outline-warning btn-sm">
                                 <i class="fas fa-vial me-2"></i>Test QR
-                            </button>
+                            </button> --}}
                         </div>
 
                         {{-- Camera Selection --}}
@@ -737,7 +737,7 @@
         // Update submitPresensi to refresh status after submission
         function submitPresensi(token, location) {
             showScanResult('Menyimpan presensi...', 'info');
-            
+
             document.getElementById('auto-token').value = token;
             document.getElementById('auto-location').value = location;
 
