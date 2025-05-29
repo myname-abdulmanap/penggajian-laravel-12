@@ -31,7 +31,7 @@
 
     <div class="row justify-content-center">
         <div class="col-md-6">
-         <i class="fa-regular fa-address-card"></i>
+        
           <br/>
             <div class="card">
                 <div class="card-header">{{ __('Login') }}</div>
