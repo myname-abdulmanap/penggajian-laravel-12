@@ -232,17 +232,21 @@ a.text-primary:focus {
                     <i class="fas fa-fw fa-wrench"></i>
                     <span>Transaksi Gaji</span>
                 </a>
+
                 <div id="collapseUtilities" class="collapse" aria-labelledby="headingUtilities"
                     data-parent="#accordionSidebar">
                     <div class="bg-white py-2 collapse-inner rounded">
+                        @if ($role === 'admin')
                         <h6 class="collapse-header">Data Gaji</h6>
-                        <a class="collapse-item" href="/tunjangan">Data Tunjangan</a>
-                        <a class="collapse-item" href="/potongan">Data Potongan</a>
+                        <a class="collapse-item" href="/allowances">Data Tunjangan</a>
+                        <a class="collapse-item" href="/deductions">Data Potongan</a>
+
 
                     </div>
+                @endif
                     <div class="bg-white py-2 collapse-inner rounded">
                         <h6 class="collapse-header">Transaksi</h6>
-                        <a class="collapse-item" href="/gaji">Penggajian</a>
+                        <a class="collapse-item" href="/salaries">Penggajian</a>
 
                     </div>
                 </div>
@@ -263,8 +267,9 @@ a.text-primary:focus {
 
                     </div> --}}
                     <div class="bg-white py-2 collapse-inner rounded">
-                        <h6 class="collapse-header">Laporan Penggajian</h6>
-                        <a class="collapse-item" href="/gaji-laporan">Laporan Gaji</a>
+
+                        {{-- <a class="collapse-item" href="/gaji-laporan">Laporan Gaji</a> --}}
+                        <a class="collapse-item" href="/admin/attendance/export-filter">Laporan Absensi</a>
 
                     </div>
                 </div>

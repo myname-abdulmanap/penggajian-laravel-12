@@ -6,6 +6,8 @@ use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Database\Seeders\AdminSeeder;
+use Database\Seeders\DeductionSeeder;
+use Database\Seeders\AllowanceSeeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -21,8 +23,10 @@ class DatabaseSeeder extends Seeder
         //     'email' => 'test@example.com',
         // ]);
         $this->call([
+
+            DeductionSeeder::class,
+            AllowanceSeeder::class,
             AdminSeeder::class,
-            // UserSeeder::class,
         ]);
     }
 }

@@ -7,6 +7,8 @@ use App\Http\Controllers\UserController;
 use App\Http\Middleware\AdminMiddleware;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\SalaryController;
+use App\Http\Controllers\AllowanceController;
+use App\Http\Controllers\DeductionController;
 
 // Route halaman welcome
 Route::get('/', function () {
@@ -84,3 +86,8 @@ Route::middleware(['auth'])->group(function () {
 });
 
 Route::resource('salaries', SalaryController::class);
+Route::resource('allowances', AllowanceController::class);
+Route::resource('deductions', DeductionController::class);
+Route::get('/get-absensi', [App\Http\Controllers\SalaryController::class, 'getAbsensi']);
+Route::get('salaries/{id}/pdf', [SalaryController::class, 'downloadPdf'])->name('salaries.pdf');
+Route::get('salaries/{id}/pdf-view', [SalaryController::class, 'viewPdf'])->name('salaries.pdf.view');
