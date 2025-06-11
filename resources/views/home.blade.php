@@ -46,7 +46,7 @@
                                 <div class="text-xs font-weight-bold text-primary text-uppercase mb-1"><a href="/admin/attendance">Presensi</a></div>
                                 @endif
                                   @if ($role === 'karyawan')
-                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1"><a href="/presensi/scan">Presensi</a></div>
+                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1"><a href="/karyawan/attendance">Presensi</a></div>
                                 @endif
                                 <div class="h5 mb-0 font-weight-bold text-gray-800">
 

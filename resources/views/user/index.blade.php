@@ -5,10 +5,17 @@
     <!-- Project Card Example -->
     <div class="card shadow mb-4">
         <div class="card-header py-3">
-            <a href="/user/tambah" class="btn btn-success float-right">
-                <i class="fas fa-plus"></i> Tambah
-            </a>
-            <h4 class="m-15 font-weight-bold">DAFTAR USER</h4>
+            <div class="d-flex justify-content-between align-items-center">
+                <h4 class="m-0 font-weight-bold">DAFTAR USER</h4>
+                <div>
+                    <a href="/user/export-filter" class="btn btn-info mr-2">
+                        <i class="fas fa-file-pdf"></i> Export PDF
+                    </a>
+                    <a href="/user/tambah" class="btn btn-success">
+                        <i class="fas fa-plus"></i> Tambah
+                    </a>
+                </div>
+            </div>
         </div>
         <div class="card-body">
             <!-- Menampilkan pesan kesuksesan -->
@@ -18,7 +25,7 @@
             </div>
             @endif
             @if(session('error'))
-            <div class="alert alert-error" role="alert">
+            <div class="alert alert-danger" role="alert">
                 {{ session('error') }}
             </div>
             @endif
@@ -65,7 +72,7 @@
                                         </button>
                                     </div>
                                     <div class="modal-body">
-                                        <p>Apakah Anda yakin ingin menghapus tunjangan ini?</p>
+                                        <p>Apakah Anda yakin ingin menghapus user ini?</p>
                                     </div>
                                     <div class="modal-footer">
                                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>

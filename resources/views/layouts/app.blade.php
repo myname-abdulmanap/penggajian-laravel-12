@@ -188,19 +188,22 @@ a.text-primary:focus {
                 <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseTwotr"
                     aria-expanded="true" aria-controls="collapseTwotr">
                     <i class="fas fa-fw fa-cog"></i>
-                    <span>Hak Akses</span>
+                    <span>Data Master</span>
 
                 </a>
                 <div id="collapseTwotr" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
                     <div class="bg-white py-2 collapse-inner rounded">
                         <h6 class="collapse-header">Hak Akses</h6>
+                        <a class="collapse-item" href="/profile">Profile</a>
                         <a class="collapse-item" href="/user">Data Karyawan</a>
+                        <a class="collapse-item" href="/admin/attendance">Data Presensi</a>
+                        <a class="collapse-item" href="/admin/attendance/settings">Pengaturan Presensi</a>
                     </div>
                 </div>
             </li>
             @endif
 
-            {{-- @if ($role === 'user') --}}
+            @if ($role === 'karyawan')
             <li class="nav-item">
                 <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseTwo"
                     aria-expanded="true" aria-controls="collapseTwo">
@@ -212,12 +215,14 @@ a.text-primary:focus {
                     <div class="bg-white py-2 collapse-inner rounded">
 
                         <a class="collapse-item" href="/profile">Profile Karyawan</a>
+                        <a class="collapse-item" href="/karyawan/attendance">Data Absensi</a>
 
 
                     </div>
                 </div>
             </li>
-            
+                @endif
+
 
 
             <!-- Nav Item - Utilities Collapse Menu -->

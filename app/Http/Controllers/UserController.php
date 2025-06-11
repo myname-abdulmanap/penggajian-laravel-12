@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 
 class UserController extends Controller
 {
@@ -78,7 +80,7 @@ class UserController extends Controller
     public function edit($users_id)
     {
         $user = User::where('users_id', $users_id)->firstOrFail();
-        return view('user.edit', compact('user')); // Ganti 'update' menjadi 'edit'
+        return view('user.edit', compact('user'));
     }
 
     public function update(Request $request, $users_id)
@@ -87,7 +89,7 @@ class UserController extends Controller
 
         $validatedData = $request->validate([
             'name'      => ['required', 'string', 'max:255'],
-            'email'     => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->users_id, 'users_id')], // Menggunakan primary key users_id
+            'email'     => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->users_id, 'users_id')],
             'password'  => ['nullable', 'string', 'min:8', 'confirmed'],
             'role'      => ['nullable', 'string', 'in:admin,manager,karyawan'],
             'status'    => ['nullable', 'string', 'in:aktif,nonaktif'],
@@ -217,5 +219,153 @@ class UserController extends Controller
             return Storage::url($user->photo);
         }
         return asset('images/default-avatar.png'); // Default avatar jika tidak ada foto
+
     }
+
+    // Method untuk menampilkan halaman filter
+public function exportFilter()
+{
+    $roles = ['admin', 'manager', 'karyawan'];
+    $statuses = ['aktif', 'nonaktif'];
+
+    return view('user.export-filter', compact('roles', 'statuses'));
 }
+
+// Method untuk download PDF
+public function downloadPdf(Request $request)
+{
+    // Validasi input filter
+    $request->validate([
+        'role' => 'nullable|in:admin,manager,karyawan',
+        'status' => 'nullable|in:aktif,nonaktif',
+        'start_date' => 'nullable|date',
+        'end_date' => 'nullable|date|after_or_equal:start_date',
+        'search' => 'nullable|string|max:100',
+        'job_title' => 'nullable|string|max:100',
+    ]);
+
+    // Query builder dengan filter
+    $query = User::query();
+
+    // Filter berdasarkan role
+    if ($request->filled('role')) {
+        $query->where('role', $request->role);
+    }
+
+    // Filter berdasarkan status
+    if ($request->filled('status')) {
+        $query->where('status', $request->status);
+    }
+
+    // Filter berdasarkan tanggal registrasi
+    if ($request->filled('start_date')) {
+        $query->whereDate('created_at', '>=', $request->start_date);
+    }
+
+    if ($request->filled('end_date')) {
+        $query->whereDate('created_at', '<=', $request->end_date);
+    }
+
+    // Filter berdasarkan pencarian nama atau email
+    if ($request->filled('search')) {
+        $search = $request->search;
+        $query->where(function($q) use ($search) {
+            $q->where('name', 'like', "%{$search}%")
+              ->orWhere('email', 'like', "%{$search}%");
+        });
+    }
+
+    // Filter berdasarkan job title
+    if ($request->filled('job_title')) {
+        $query->where('job_title', 'like', "%{$request->job_title}%");
+    }
+
+    // Ambil data dengan order by name
+    $users = $query->orderBy('name', 'asc')->get();
+
+    // Data untuk template PDF
+    $data = [
+        'users' => $users,
+        'filters' => $request->all(),
+        'generated_at' => Carbon::now()->format('d/m/Y H:i:s'),
+        'total_users' => $users->count(),
+        'company_name' => config('app.name', 'Company Name'), // Bisa disesuaikan
+    ];
+
+    // Generate PDF
+    $pdf = Pdf::loadView('user.pdf-template', $data);
+
+    // Set paper size dan orientasi
+    $pdf->setPaper('A4', 'landscape'); // atau 'portrait'
+
+    // Generate filename
+    $filename = 'data-karyawan-' . Carbon::now()->format('Y-m-d-H-i-s') . '.pdf';
+
+    // Download PDF
+    return $pdf->download($filename);
+}
+
+// Method untuk preview PDF (opsional)
+public function previewPdf(Request $request)
+{
+    // Logic sama seperti downloadPdf, tapi return stream instead of download
+    $request->validate([
+        'role' => 'nullable|in:admin,manager,karyawan',
+        'status' => 'nullable|in:aktif,nonaktif',
+        'start_date' => 'nullable|date',
+        'end_date' => 'nullable|date|after_or_equal:start_date',
+        'search' => 'nullable|string|max:100',
+        'job_title' => 'nullable|string|max:100',
+    ]);
+
+    $query = User::query();
+
+    if ($request->filled('role')) {
+        $query->where('role', $request->role);
+    }
+
+    if ($request->filled('status')) {
+        $query->where('status', $request->status);
+    }
+
+    if ($request->filled('start_date')) {
+        $query->whereDate('created_at', '>=', $request->start_date);
+    }
+
+    if ($request->filled('end_date')) {
+        $query->whereDate('created_at', '<=', $request->end_date);
+    }
+
+    if ($request->filled('search')) {
+        $search = $request->search;
+        $query->where(function($q) use ($search) {
+            $q->where('name', 'like', "%{$search}%")
+              ->orWhere('email', 'like', "%{$search}%");
+        });
+    }
+
+    if ($request->filled('job_title')) {
+        $query->where('job_title', 'like', "%{$request->job_title}%");
+    }
+
+    $users = $query->orderBy('name', 'asc')->get();
+
+    $data = [
+        'users' => $users,
+        'filters' => $request->all(),
+        'generated_at' => Carbon::now()->format('d/m/Y H:i:s'),
+        'total_users' => $users->count(),
+        'company_name' => config('app.name', 'Company Name'),
+    ];
+
+    $pdf = Pdf::loadView('user.pdf-template', $data);
+    $pdf->setPaper('A4', 'landscape');
+
+    // Stream PDF untuk preview
+    return $pdf->stream('preview-data-karyawan.pdf');
+}
+}
+
+
+
+//thanks

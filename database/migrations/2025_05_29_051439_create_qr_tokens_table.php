@@ -13,14 +13,12 @@ return new class extends Migration
     {
         Schema::create('qr_tokens', function (Blueprint $table) {
             $table->id();
-            $table->string('token', 64)->unique();
+            $table->string('token')->unique();
+            $table->enum('type', ['checkin', 'checkout', 'absensi'])->default('absensi');
             $table->timestamp('expires_at');
             $table->boolean('is_used')->default(false);
+            $table->foreignId('used_by')->nullable()->constrained('users', 'users_id');
             $table->timestamps();
-
-            // Add indexes for better performance
-            $table->index(['token', 'expires_at', 'is_used']);
-            $table->index('expires_at');
         });
     }
 
