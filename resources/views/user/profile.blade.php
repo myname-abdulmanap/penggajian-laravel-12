@@ -228,6 +228,11 @@
                         <div class="p-4">
                             <div class="info-item">
                                 <i class="fas fa-envelope info-icon"></i>
+                                <span class="info-label">ID:</span>
+                                <span class="info-value">{{ $user->users_id }}</span>
+                            </div>
+                            <div class="info-item">
+                                <i class="fas fa-envelope info-icon"></i>
                                 <span class="info-label">Email:</span>
                                 <span class="info-value">{{ $user->email }}</span>
                             </div>

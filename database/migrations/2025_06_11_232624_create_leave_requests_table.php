@@ -12,14 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('leave_requests', function (Blueprint $table) {
-            $table->id('leave_id');
+            $table->unsignedBigInteger('leave_id')->primary();
             $table->unsignedBigInteger('user_id');
             $table->date('start_date');
             $table->date('end_date');
             $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
+            $table->string('leave_type');
             $table->text('reason')->nullable();
             $table->foreign('user_id')->references('users_id')->on('users')->onDelete('cascade');
-            $table->string('attachment')->nullable(); // Optional attachment for leave request
+            $table->string('attachment')->nullable(); 
             $table->timestamps();
         });
     }

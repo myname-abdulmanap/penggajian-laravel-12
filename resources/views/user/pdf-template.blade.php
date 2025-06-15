@@ -162,6 +162,7 @@
     <div class="header">
         <h1>{{ $company_name }}</h1>
         <h2>LAPORAN DATA KARYAWAN</h2>
+
     </div>
 
     <!-- Info Section -->

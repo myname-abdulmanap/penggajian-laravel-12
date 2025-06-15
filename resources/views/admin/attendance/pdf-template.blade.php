@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="utf-8">
     <title>Laporan Absensi Karyawan</title>
@@ -66,7 +67,8 @@
             font-size: 11px;
         }
 
-        th, td {
+        th,
+        td {
             border: 1px solid #ddd;
             padding: 6px 4px;
             text-align: center;
@@ -91,11 +93,26 @@
             color: white;
         }
 
-        .badge-success { background-color: #28a745; }
-        .badge-warning { background-color: #ffc107; color: #212529; }
-        .badge-info { background-color: #17a2b8; }
-        .badge-danger { background-color: #dc3545; }
-        .badge-secondary { background-color: #6c757d; }
+        .badge-success {
+            background-color: #28a745;
+        }
+
+        .badge-warning {
+            background-color: #ffc107;
+            color: #212529;
+        }
+
+        .badge-info {
+            background-color: #17a2b8;
+        }
+
+        .badge-danger {
+            background-color: #dc3545;
+        }
+
+        .badge-secondary {
+            background-color: #6c757d;
+        }
 
         .late-badge {
             padding: 2px 4px;
@@ -104,9 +121,20 @@
             font-weight: bold;
         }
 
-        .late-ontime { background-color: #d4edda; color: #155724; }
-        .late-late { background-color: #f8d7da; color: #721c24; }
-        .late-nocheck { background-color: #e2e3e5; color: #383d41; }
+        .late-ontime {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .late-late {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .late-nocheck {
+            background-color: #e2e3e5;
+            color: #383d41;
+        }
 
         .footer {
             margin-top: 30px;
@@ -146,10 +174,12 @@
         }
     </style>
 </head>
+
 <body>
     <!-- Header -->
     <div class="header">
         <h1>LAPORAN ABSENSI KARYAWAN</h1>
+        <h2>{{ config('app.company') }}</h2>
         <p>Digenerate pada: {{ $generated_at }}</p>
     </div>
 
@@ -163,26 +193,26 @@
             {{ $filters['end_date'] ? \Carbon\Carbon::parse($filters['end_date'])->format('d-m-Y') : 'Semua' }}
         </div>
 
-        @if($filters['user_id'])
+        @if ($filters['user_id'])
             <div class="filter-row">
                 <span class="filter-label">Karyawan:</span>
                 {{ $attendances->first() ? $attendances->first()->user->name : '-' }}
             </div>
         @endif
 
-        @if($filters['status'])
+        @if ($filters['status'])
             <div class="filter-row">
                 <span class="filter-label">Status:</span> {{ ucfirst($filters['status']) }}
             </div>
         @endif
 
-        @if($filters['late_status'])
+        @if ($filters['late_status'])
             <div class="filter-row">
                 <span class="filter-label">Keterlambatan:</span> {{ $filters['late_status'] }}
             </div>
         @endif
 
-        @if($setting)
+        @if ($setting)
             <div class="filter-row">
                 <span class="filter-label">Jam Kerja:</span> {{ $setting->jam_masuk }} - {{ $setting->jam_pulang }}
             </div>
@@ -190,7 +220,7 @@
     </div>
 
     <!-- Summary -->
-    @if($attendances->count() > 0)
+    @if ($attendances->count() > 0)
         <div class="summary">
             <h3>Ringkasan Data:</h3>
             <div class="summary-item">
@@ -209,7 +239,7 @@
     @endif
 
     <!-- Data Table -->
-    @if($attendances->count() > 0)
+    @if ($attendances->count() > 0)
         <table>
             <thead>
                 <tr>
@@ -224,7 +254,7 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach($attendances as $index => $attendance)
+                @foreach ($attendances as $index => $attendance)
                     <tr>
                         <td>{{ $index + 1 }}</td>
                         <td>{{ $attendance->formatted_date }}</td>
@@ -232,7 +262,7 @@
                         <td>{{ $attendance->check_in ?? '-' }}</td>
                         <td>{{ $attendance->check_out ?? '-' }}</td>
                         <td>
-                            @if($attendance->status == 'hadir')
+                            @if ($attendance->status == 'hadir')
                                 <span class="badge badge-success">Hadir</span>
                             @elseif($attendance->status == 'izin')
                                 <span class="badge badge-warning">Izin</span>
@@ -245,7 +275,7 @@
                             @endif
                         </td>
                         <td>
-                            @if($attendance->late_status == 'Tepat Waktu')
+                            @if ($attendance->late_status == 'Tepat Waktu')
                                 <span class="late-badge late-ontime">Tepat Waktu</span>
                             @elseif($attendance->late_status == 'Terlambat')
                                 <span class="late-badge late-late">Terlambat</span>
@@ -269,4 +299,5 @@
         <p>Laporan ini digenerate secara otomatis oleh sistem pada {{ $generated_at }}</p>
     </div>
 </body>
+
 </html>

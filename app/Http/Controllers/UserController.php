@@ -21,7 +21,7 @@ class UserController extends Controller
 
     public function index()
     {
-        $users = User::paginate(10); // Menggunakan pagination dan nama variabel plural
+        $users = User::paginate(10);
         return view('user.index', compact('users'));
     }
 
@@ -33,6 +33,7 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $validatedData = $request->validate([
+            'users_id' => 'required|numeric|unique:users,users_id',
             'name'      => ['required', 'string', 'max:255'],
             'email'     => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password'  => ['required', 'string', 'min:8', 'confirmed'],
@@ -45,6 +46,7 @@ class UserController extends Controller
         ]);
 
         $userData = [
+            'users_id'  => $validatedData['users_id'],
             'name'      => $validatedData['name'],
             'email'     => $validatedData['email'],
             'password'  => Hash::make($validatedData['password']),
@@ -88,6 +90,7 @@ class UserController extends Controller
         $user = User::where('users_id', $users_id)->firstOrFail();
 
         $validatedData = $request->validate([
+
             'name'      => ['required', 'string', 'max:255'],
             'email'     => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->users_id, 'users_id')],
             'password'  => ['nullable', 'string', 'min:8', 'confirmed'],
@@ -355,7 +358,7 @@ public function previewPdf(Request $request)
         'filters' => $request->all(),
         'generated_at' => Carbon::now()->format('d/m/Y H:i:s'),
         'total_users' => $users->count(),
-        'company_name' => config('app.name', 'Company Name'),
+        'company_name' => config('app.company', 'Company Name'),
     ];
 
     $pdf = Pdf::loadView('user.pdf-template', $data);

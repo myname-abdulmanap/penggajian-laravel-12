@@ -43,7 +43,7 @@
                 <tbody>
                     @foreach($users as $index => $userItem)
                     <tr align="center">
-                        <td>{{ $index + 1 }}</td>
+                        <td>{{ $userItem->users_id }}</td>
                         <td>{{ $userItem->name }}</td>
                         <td>{{ $userItem->email }}</td>
                         <td>{{ $userItem->role }}</td>

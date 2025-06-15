@@ -701,4 +701,459 @@
         }
     });
 </script>
+
+<script>
+    // Enhanced location detection function with multiple accurate providers
+function detectLocation() {
+    const locationBtn = document.getElementById('getLocationBtn');
+    const locationStatus = document.getElementById('location-status');
+    const locationPreview = document.getElementById('location-preview');
+
+    if (!locationBtn || !locationStatus || !locationPreview) {
+        console.error('Location elements not found');
+        return;
+    }
+
+    locationStatus.innerHTML = '<span class="badge bg-warning rounded-pill px-3 py-2">Meminta izin...</span>';
+    locationPreview.innerHTML = '<span class="text-info">Meminta izin lokasi...</span>';
+    locationBtn.disabled = true;
+
+    if (!navigator.geolocation) {
+        locationPreview.innerHTML = '<span class="text-danger">Browser tidak mendukung geolocation</span>';
+        locationStatus.innerHTML = '<span class="badge bg-danger rounded-pill px-3 py-2">Tidak didukung</span>';
+        showToast('Browser tidak mendukung deteksi lokasi', 'error');
+        locationBtn.disabled = false;
+        return;
+    }
+
+    const options = {
+        enableHighAccuracy: true,
+        timeout: 25000, // Increased timeout for better accuracy
+        maximumAge: 10000 // Shorter cache time for more current location
+    };
+
+    navigator.geolocation.getCurrentPosition(
+        async function(position) {
+            const lat = position.coords.latitude.toFixed(7); // Higher precision
+            const lng = position.coords.longitude.toFixed(7);
+            const location = lat + ',' + lng;
+            const accuracy = position.coords.accuracy ? Math.round(position.coords.accuracy) : 'Unknown';
+
+            // Update status to show coordinates are obtained
+            locationStatus.innerHTML = '<span class="badge bg-info rounded-pill px-3 py-2">Mendapatkan alamat...</span>';
+            locationPreview.innerHTML = `
+                <div class="text-info">
+                    <strong>Koordinat:</strong> ${lat}, ${lng}<br>
+                    <small>Akurasi: ±${accuracy}m | Sedang mendapatkan alamat...</small>
+                </div>
+            `;
+
+            try {
+                // Get address using multiple providers with better accuracy
+                const address = await reverseGeocode(lat, lng);
+
+                // Create location data with coordinates and address
+                const locationData = {
+                    coordinates: location,
+                    address: address,
+                    accuracy: accuracy,
+                    full: `${location}|${address}|${accuracy}m` // Format: "lat,lng|address|accuracy"
+                };
+
+                // Set location ke form utama
+                const locationInput = document.getElementById("location");
+                if (locationInput) {
+                    locationInput.value = locationData.full;
+                }
+
+                // Set location ke form manual juga
+                const manualLocationInput = document.getElementById("manual-location");
+                if (manualLocationInput) {
+                    manualLocationInput.value = locationData.full;
+                }
+
+                // Update preview with both coordinates and address
+                locationPreview.innerHTML = `
+                    <div class="text-success">
+                        <strong>Koordinat:</strong> ${lat}, ${lng}<br>
+                        <strong>Alamat:</strong> ${address}<br>
+                        <small class="text-muted">Akurasi: ±${accuracy}m</small>
+                    </div>
+                `;
+                locationStatus.innerHTML = '<span class="badge bg-success rounded-pill px-3 py-2">Lokasi & alamat didapat</span>';
+
+                locationFetched = true;
+                updateProgress();
+                locationBtn.style.display = 'none';
+
+                showToast('Lokasi dan alamat berhasil dideteksi!', 'success');
+
+            } catch (error) {
+                console.error('Error getting address:', error);
+
+                // Fallback: still use coordinates even if address fails
+                const locationInput = document.getElementById("location");
+                if (locationInput) {
+                    locationInput.value = `${location}||${accuracy}m`;
+                }
+
+                const manualLocationInput = document.getElementById("manual-location");
+                if (manualLocationInput) {
+                    manualLocationInput.value = `${location}||${accuracy}m`;
+                }
+
+                locationPreview.innerHTML = `
+                    <div class="text-warning">
+                        <strong>Koordinat:</strong> ${lat}, ${lng}<br>
+                        <small class="text-muted">Akurasi: ±${accuracy}m | Alamat tidak dapat dideteksi</small>
+                    </div>
+                `;
+                locationStatus.innerHTML = '<span class="badge bg-warning rounded-pill px-3 py-2">Koordinat saja</span>';
+
+                locationFetched = true;
+                updateProgress();
+                locationBtn.style.display = 'none';
+
+                showToast('Koordinat berhasil dideteksi, tetapi alamat tidak dapat ditemukan.', 'warning');
+            }
+        },
+        function(error) {
+            let errorMsg = 'Gagal mendapatkan lokasi';
+            switch (error.code) {
+                case error.PERMISSION_DENIED:
+                    errorMsg = 'Izin lokasi ditolak. Silakan izinkan akses lokasi di browser.';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorMsg = 'Lokasi tidak tersedia. Pastikan GPS aktif dan Anda berada di area dengan sinyal yang baik.';
+                    break;
+                case error.TIMEOUT:
+                    errorMsg = 'Timeout mendapatkan lokasi. Silakan coba lagi atau pindah ke area dengan sinyal GPS yang lebih baik.';
+                    break;
+            }
+
+            locationPreview.innerHTML = `<span class="text-danger">${errorMsg}</span>`;
+            locationStatus.innerHTML = '<span class="badge bg-danger rounded-pill px-3 py-2">Gagal</span>';
+            locationBtn.disabled = false;
+
+            showToast(errorMsg, 'error');
+        },
+        options
+    );
+}
+
+// Enhanced reverse geocoding function with better Indonesian coverage
+async function reverseGeocode(lat, lng) {
+    const providers = [
+        {
+            name: 'OpenCage',
+            url: `https://api.opencagedata.com/geocode/v1/json?q=${lat}+${lng}&key=YOUR_OPENCAGE_KEY&language=id&no_annotations=1`,
+            parser: parseOpenCageResponse,
+            requiresKey: true
+        },
+        {
+            name: 'Nominatim-ID',
+            url: `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&accept-language=id,en&namedetails=1`,
+            parser: parseNominatimResponse,
+            requiresKey: false
+        },
+        {
+            name: 'Photon',
+            url: `https://photon.komoot.io/reverse?lat=${lat}&lon=${lng}&lang=id`,
+            parser: parsePhotonResponse,
+            requiresKey: false
+        },
+        {
+            name: 'BigDataCloud',
+            url: `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=id`,
+            parser: parseBigDataCloudResponse,
+            requiresKey: false
+        }
+    ];
+
+    // Filter out providers that require API keys if not available
+    const availableProviders = providers.filter(provider =>
+        !provider.requiresKey || (provider.requiresKey && provider.url.includes('YOUR_') === false)
+    );
+
+    for (const provider of availableProviders) {
+        try {
+            console.log(`Trying ${provider.name} for reverse geocoding...`);
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+
+            const response = await fetch(provider.url, {
+                method: 'GET',
+                headers: {
+                    'User-Agent': 'AttendanceApp/1.0 (Educational Purpose)',
+                    'Accept': 'application/json',
+                    'Accept-Language': 'id,en'
+                },
+                signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            const address = provider.parser(data);
+
+            if (address && address.length > 15 && !address.toLowerCase().includes('unknown')) {
+                console.log(`Successfully got address from ${provider.name}:`, address);
+                return address;
+            } else {
+                console.log(`${provider.name} returned insufficient address data:`, address);
+            }
+        } catch (error) {
+            console.error(`Error with ${provider.name}:`, error.message);
+            continue; // Try next provider
+        }
+    }
+
+    // If all providers fail, return fallback
+    throw new Error('Semua layanan alamat tidak dapat diakses atau tidak memiliki data untuk lokasi ini');
+}
+
+// Parser for OpenCage response (most accurate for Indonesia)
+function parseOpenCageResponse(data) {
+    if (!data || !data.results || data.results.length === 0) {
+        throw new Error('Invalid OpenCage response');
+    }
+
+    const result = data.results[0];
+    if (result.formatted) {
+        return result.formatted;
+    }
+
+    // Build from components if formatted not available
+    const comp = result.components;
+    const parts = [];
+
+    if (comp.house_number) parts.push(comp.house_number);
+    if (comp.road) parts.push(comp.road);
+    if (comp.neighbourhood) parts.push(comp.neighbourhood);
+    if (comp.suburb) parts.push(comp.suburb);
+    if (comp.village) parts.push(comp.village);
+    if (comp.town) parts.push(comp.town);
+    if (comp.city) parts.push(comp.city);
+    if (comp.county) parts.push(comp.county);
+    if (comp.state) parts.push(comp.state);
+    if (comp.country) parts.push(comp.country);
+
+    return parts.length > 0 ? parts.join(', ') : result.formatted || 'Alamat tidak diketahui';
+}
+
+// Enhanced parser for Nominatim response
+function parseNominatimResponse(data) {
+    if (!data || (!data.address && !data.display_name)) {
+        throw new Error('Invalid Nominatim response');
+    }
+
+    // Use display_name as primary source for better accuracy
+    if (data.display_name) {
+        // Clean up display_name for Indonesian addresses
+        let address = data.display_name;
+
+        // Remove postal codes that might be incorrect
+        address = address.replace(/\b\d{5}\b/g, '').replace(/,\s*,/g, ',').trim();
+
+        // If it's too generic or contains coordinates, try building from components
+        if (address.length < 20 || address.includes('°')) {
+            return buildAddressFromComponents(data.address);
+        }
+
+        return address;
+    }
+
+    return buildAddressFromComponents(data.address);
+}
+
+function buildAddressFromComponents(addr) {
+    if (!addr) {
+        throw new Error('No address components available');
+    }
+
+    const parts = [];
+
+    // Indonesian address hierarchy
+    if (addr.house_number) parts.push(addr.house_number);
+    if (addr.road) parts.push(addr.road);
+    if (addr.hamlet) parts.push(addr.hamlet);
+    if (addr.village) parts.push(addr.village);
+    if (addr.neighbourhood) parts.push(addr.neighbourhood);
+    if (addr.suburb) parts.push(addr.suburb);
+    if (addr.city_district) parts.push(addr.city_district);
+    if (addr.town) parts.push(addr.town);
+    if (addr.city) parts.push(addr.city);
+    if (addr.county) parts.push(addr.county);
+    if (addr.state) parts.push(addr.state);
+    if (addr.country) parts.push(addr.country);
+
+    return parts.length > 0 ? parts.join(', ') : 'Alamat tidak lengkap';
+}
+
+// Parser for Photon response
+function parsePhotonResponse(data) {
+    if (!data || !data.features || data.features.length === 0) {
+        throw new Error('Invalid Photon response');
+    }
+
+    const feature = data.features[0];
+    const props = feature.properties;
+
+    if (!props) {
+        throw new Error('No properties in Photon response');
+    }
+
+    const parts = [];
+
+    if (props.housenumber) parts.push(props.housenumber);
+    if (props.street) parts.push(props.street);
+    if (props.district) parts.push(props.district);
+    if (props.city) parts.push(props.city);
+    if (props.county) parts.push(props.county);
+    if (props.state) parts.push(props.state);
+    if (props.country) parts.push(props.country);
+
+    return parts.length > 0 ? parts.join(', ') : props.name || 'Alamat tidak diketahui';
+}
+
+// Enhanced parser for BigDataCloud response
+function parseBigDataCloudResponse(data) {
+    if (!data) {
+        throw new Error('Invalid BigDataCloud response');
+    }
+
+    // Try to get the most complete address
+    if (data.locality) {
+        const parts = [data.locality];
+
+        if (data.localityInfo && data.localityInfo.administrative) {
+            // Sort by admin level descending to get more specific first
+            const adminAreas = data.localityInfo.administrative
+                .filter(admin => admin.name && admin.adminLevel >= 4)
+                .sort((a, b) => b.adminLevel - a.adminLevel);
+
+            adminAreas.forEach(admin => {
+                if (!parts.includes(admin.name)) {
+                    parts.push(admin.name);
+                }
+            });
+        }
+
+        if (data.principalSubdivision && !parts.includes(data.principalSubdivision)) {
+            parts.push(data.principalSubdivision);
+        }
+        if (data.countryName && !parts.includes(data.countryName)) {
+            parts.push(data.countryName);
+        }
+
+        return parts.join(', ');
+    }
+
+    if (data.city) {
+        return `${data.city}, ${data.principalSubdivision || ''}, ${data.countryName || ''}`.replace(/,\s*,/g, ',').trim();
+    }
+
+    throw new Error('No useful address data from BigDataCloud');
+}
+
+// Enhanced manual location input handler
+function handleManualLocationInput() {
+    const manualLocationInput = document.getElementById('manual-location');
+    if (!manualLocationInput) return;
+
+    // Add input event listener for manual location
+    manualLocationInput.addEventListener('input', function() {
+        const locationValue = this.value.trim();
+        const mainLocationInput = document.getElementById('location');
+
+        if (mainLocationInput) {
+            mainLocationInput.value = locationValue;
+        }
+
+        // Update location status based on input
+        const locationPreview = document.getElementById("location-preview");
+        const locationStatus = document.getElementById("location-status");
+
+        if (locationValue.length > 0) {
+            if (locationPreview) {
+                locationPreview.innerHTML = `<div class="text-primary"><strong>Manual Input:</strong><br>${locationValue}</div>`;
+            }
+            if (locationStatus) {
+                locationStatus.innerHTML = '<span class="badge bg-primary rounded-pill px-3 py-2">Input manual</span>';
+            }
+            locationFetched = true;
+        } else {
+            if (locationPreview) {
+                locationPreview.innerHTML = '<span class="text-muted">Mendeteksi lokasi...</span>';
+            }
+            if (locationStatus) {
+                locationStatus.innerHTML = '<span class="badge bg-secondary rounded-pill px-3 py-2">Mendeteksi...</span>';
+            }
+            locationFetched = false;
+        }
+
+        updateProgress();
+    });
+}
+
+// Enhanced showToast function with warning type
+function showToast(message, type) {
+    // Remove existing toasts
+    const existingToasts = document.querySelectorAll('.custom-toast');
+    existingToasts.forEach(toast => toast.remove());
+
+    // Create new toast
+    let alertClass = 'alert-info';
+    let iconClass = 'fa-info-circle';
+
+    switch(type) {
+        case 'success':
+            alertClass = 'alert-success';
+            iconClass = 'fa-check-circle';
+            break;
+        case 'error':
+            alertClass = 'alert-danger';
+            iconClass = 'fa-exclamation-circle';
+            break;
+        case 'warning':
+            alertClass = 'alert-warning';
+            iconClass = 'fa-exclamation-triangle';
+            break;
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `alert ${alertClass} position-fixed custom-toast alert-dismissible fade show`;
+    toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px; max-width: 500px;';
+    toast.innerHTML = `
+        <i class="fas ${iconClass} me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" onclick="this.parentElement.remove()" aria-label="Close"></button>
+    `;
+
+    document.body.appendChild(toast);
+
+    // Auto remove after 6 seconds (increased for longer messages)
+    setTimeout(() => {
+        if (toast.parentElement) {
+            toast.remove();
+        }
+    }, 6000);
+}
+
+// Helper function to validate coordinates
+function isValidCoordinate(lat, lng) {
+    const latitude = parseFloat(lat);
+    const longitude = parseFloat(lng);
+
+    return !isNaN(latitude) && !isNaN(longitude) &&
+           latitude >= -90 && latitude <= 90 &&
+           longitude >= -180 && longitude <= 180;
+}
+</script>
+
 @endsection

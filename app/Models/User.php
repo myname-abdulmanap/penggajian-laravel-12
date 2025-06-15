@@ -15,12 +15,14 @@ class User extends Authenticatable
      * Primary key untuk table users
      */
     protected $primaryKey = 'users_id';
+    
     public $incrementing = false;
 
     /**
      * The attributes that are mass assignable.
      */
     protected $fillable = [
+        'users_id',
         'name',
         'email',
         'password',
@@ -103,16 +105,18 @@ class User extends Authenticatable
         return $query->where('role', $role);
     }
 
-    protected static function boot()
-    {
-        parent::boot();
+    // protected static function boot()
+    // {
+    //     parent::boot();
 
-        static::creating(function ($model) {
-            do {
-                $randomId = random_int(10000000, 99999999); // ID acak 8 digit
-            } while (DB::table('users')->where('users_id', $randomId)->exists());
+    //     static::creating(function ($model) {
+    //         do {
+    //             $randomId = random_int(10000000, 99999999); // ID acak 8 digit
+    //         } while (DB::table('users')->where('users_id', $randomId)->exists());
 
-            $model->users_id = $randomId;
-        });
-    }
+    //         $model->users_id = $randomId;
+    //     });
+    // }
+
+
 }

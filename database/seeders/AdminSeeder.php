@@ -5,6 +5,8 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+
 
 class AdminSeeder extends Seeder
 {
@@ -12,11 +14,12 @@ class AdminSeeder extends Seeder
     {
         // Admin
         User::create([
+            'users_id'  => rand(10000, 99999),
             'name'      => 'Admin Kantor',
             'email'     => 'admin@gmail.com',
             'role'      => 'admin',
             'password'  => Hash::make('admin123'),
-            'status'    => 'active',
+            'status'    => 'aktif',
             'phone'     => '081234567890',
             'address'   => 'Jl. Sudirman No.1, Jakarta',
             'job_title' => 'Administrator',
@@ -92,11 +95,12 @@ class AdminSeeder extends Seeder
 
         foreach ($karyawans as $karyawan) {
             User::create([
+                'users_id'  => rand(10000, 99999999),
                 'name'      => $karyawan['name'],
                 'email'     => $karyawan['email'],
                 'role'      => 'karyawan',
                 'password'  => Hash::make('karyawan123'),
-                'status'    => 'active',
+                'status'    => 'aktif',
                 'phone'     => $karyawan['phone'],
                 'address'   => $karyawan['address'],
                 'job_title' => $karyawan['job_title'],

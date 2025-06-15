@@ -9,10 +9,31 @@ use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\SalaryController;
 use App\Http\Controllers\AllowanceController;
 use App\Http\Controllers\DeductionController;
+use App\Http\Controllers\LeaveController;
+use App\Models\Leave;
+use Illuminate\Support\Facades\Artisan;
+
+
 
 // Route halaman welcome
 Route::get('/', function () {
     return view('welcome');
+});
+
+Route::get('/clear-cache', function () {
+    Artisan::call('config:clear');
+    Artisan::call('cache:clear');
+    Artisan::call('route:clear');
+    Artisan::call('view:clear');
+    return '✅ Cache cleared!';
+});
+Route::get('/link-storage', function () {
+    Artisan::call('storage:link');
+    return 'Storage link berhasil dibuat!';
+});
+
+Route::get('/cek', function () {
+    return '✅ Routing OK!';
 });
 
 // Auth route default Laravel
@@ -74,7 +95,18 @@ Route::middleware(['auth'])->group(function () {
 
     // Route untuk preview PDF (opsional)
     Route::get('/user/preview-pdf', [UserController::class, 'previewPdf'])->name('user.preview-pdf');
-     // Route untuk menampilkan halaman filter export
+
+    // Route untuk halaman filter export
+    Route::get('/leaves/export-filter', [LeaveController::class, 'exportFilter'])->name('leaves.export-filter');
+
+    // Route untuk download PDF
+    Route::get('/leaves/download-pdf', [LeaveController::class, 'downloadPdf'])->name('leaves.download-pdf');
+
+    // Route untuk preview PDF (opsional)
+    Route::get('/leaves/preview-pdf', [LeaveController::class, 'previewPdf'])->name('leaves.preview-pdf');
+
+
+    // Route untuk menampilkan halaman filter export
     Route::get('/attendance/export-filter', [AttendanceController::class, 'exportFilter'])->name('attendance.export-filter');
 
     // Route untuk mendownload laporan PDF
@@ -82,12 +114,14 @@ Route::middleware(['auth'])->group(function () {
 
     // Route untuk preview PDF (menampilkan dalam browser, bukan download)
     Route::get('/attendance/preview-pdf', [AttendanceController::class, 'previewPdf'])->name('attendance.preview-pdf');
-
+    Route::resource('salaries', SalaryController::class);
+    Route::resource('allowances', AllowanceController::class);
+    Route::resource('deductions', DeductionController::class);
+    Route::get('/get-absensi', [App\Http\Controllers\SalaryController::class, 'getAbsensi']);
+    Route::get('salaries/{id}/pdf', [SalaryController::class, 'downloadPdf'])->name('salaries.pdf');
+    Route::get('salaries/{id}/pdf-view', [SalaryController::class, 'viewPdf'])->name('salaries.pdf.view');
+    Route::get('/leaves', [LeaveController::class, 'index'])->name('leaves.index');
+    Route::post('/leaves', [LeaveController::class, 'store'])->name('leaves.store');
+    Route::put('/leaves/{id}', [LeaveController::class, 'update'])->name('leaves.update');
+    Route::delete('/leaves/{id}', [LeaveController::class, 'destroy'])->name('leaves.destroy');
 });
-
-Route::resource('salaries', SalaryController::class);
-Route::resource('allowances', AllowanceController::class);
-Route::resource('deductions', DeductionController::class);
-Route::get('/get-absensi', [App\Http\Controllers\SalaryController::class, 'getAbsensi']);
-Route::get('salaries/{id}/pdf', [SalaryController::class, 'downloadPdf'])->name('salaries.pdf');
-Route::get('salaries/{id}/pdf-view', [SalaryController::class, 'viewPdf'])->name('salaries.pdf.view');
