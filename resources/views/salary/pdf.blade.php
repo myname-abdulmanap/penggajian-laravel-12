@@ -108,8 +108,8 @@
     }
     @endphp
 
-    <div class="net-salary">Gaji Bersih: Rp {{ number_format($net,0,',','.') }}</div>
-    <div class="terbilang">Terbilang:{{ ucwords(trim(terbilang($net))) }} rupiah</div>
+    <div class="net-salary">Gaji Bersih: Rp {{ number_format($salary->net_salary,0,',','.') }}</div>
+    <div class="terbilang">Terbilang:{{ ucwords(trim(terbilang($salary->net_salary))) }} rupiah</div>
 
     <table class="signature">
         <tr><td>Karawang, {{ \Carbon\Carbon::now()->format('d F Y') }}</td><td></td></tr>
