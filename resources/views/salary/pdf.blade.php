@@ -43,6 +43,11 @@
         <tr>
             <td class="label">Jabatan</td><td>: {{ $salary->user->job_title ?? '-' }}</td>
             <td class="label">Hadir</td><td>: {{ $salary->total_attendance ?? 0 }} hari</td>
+
+        </tr>
+        <tr>
+            <td class="label">Cuti</td><td>: {{ $totalCuti ?? 0 }} hari</td>
+            <td class="label">Telat (-50.000)</td><td>: {{ $lateCount ?? 0 }} hari</td>
         </tr>
     </table>
 

@@ -125,3 +125,8 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/leaves/{id}', [LeaveController::class, 'update'])->name('leaves.update');
     Route::delete('/leaves/{id}', [LeaveController::class, 'destroy'])->name('leaves.destroy');
 });
+
+
+// Route baru yang perlu ditambahkan:
+Route::get('/get-cuti', [SalaryController::class, 'getCuti'])->name('get.cuti');
+Route::get('/get-keterlambatan', [SalaryController::class, 'getKeterlambatan'])->name('get.keterlambatan');

@@ -64,10 +64,21 @@
                                     <td>{{ \Carbon\Carbon::now()->format('d F Y') }}</td>
                                 </tr>
                                 <tr>
-                                    <td class="fw-bold">Total Absensi</td>
+                                    <td class="fw-bold">Total Masuk</td>
                                     <td>:</td>
                                     <td>{{ $salary->total_attendance ?? 0 }} hari</td>
                                 </tr>
+                                <tr>
+                                    <td class="fw-bold">Total Telat (-50.000)</td>
+                                    <td>:</td>
+                                    <td>{{ $lateCount }} hari</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Total Cuti</td>
+                                    <td>:</td>
+                                    <td>{{ $totalCuti }} hari</td>
+                                </tr>
+
                             </table>
                         </div>
                     </div>

@@ -21,7 +21,7 @@
                             <select name="users_id" id="users_id" class="form-control" required>
                                 <option value="">-- Pilih Pegawai --</option>
                                 @foreach ($users as $user)
-                                    <option value="{{ $user->users_id }}">{{ $user->name }}</option>
+                                    <option value="{{ $user->users_id }}">{{ $user->name }} ({{$user->users_id}})</option>
                                 @endforeach
                             </select>
                         </div>
@@ -39,6 +39,18 @@
                         <div class="form-group mb-3">
                             <label>Total Absen Bulan Ini</label>
                             <input type="text" id="absensi_display" class="form-control" readonly value="0 hari">
+                        </div>
+
+                        <!-- Display Total Cuti -->
+                        <div class="form-group mb-3">
+                            <label>Total Cuti Bulan Ini</label>
+                            <input type="text" id="cuti_display" class="form-control" readonly value="0 hari">
+                        </div>
+
+                        <!-- Display Total Terlambat -->
+                        <div class="form-group mb-3">
+                            <label>Total Terlambat Bulan Ini</label>
+                            <input type="text" id="telat_display" class="form-control" readonly value="0 hari">
                         </div>
 
                         <!-- Gaji Pokok -->
@@ -128,163 +140,213 @@
     </div>
 </div>
 
-<!-- JS Perhitungan -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    function updateNetSalary() {
-        const base = parseFloat(document.getElementById('base_salary').value) || 0;
-        const overtime = parseFloat(document.getElementById('overtime').value) || 0;
+    // Global variables
+    let totalTelatDays = 0;
+    const LATE_PENALTY_PER_DAY = 50000;
 
-        let totalAllowance = 0;
+    // DOM elements
+    const elements = {
+        userSelect: document.getElementById('users_id'),
+        periodInput: document.getElementById('period'),
+        baseSalaryInput: document.getElementById('base_salary'),
+        overtimeInput: document.getElementById('overtime'),
+        netSalaryInput: document.getElementById('net_salary'),
+        absensiDisplay: document.getElementById('absensi_display'),
+        cutiDisplay: document.getElementById('cuti_display'),
+        telatDisplay: document.getElementById('telat_display'),
+        totalAttendanceInput: document.getElementById('total_attendance'),
+        allowanceContainer: document.getElementById('allowance-container'),
+        deductionContainer: document.getElementById('deduction-container'),
+        addAllowanceBtn: document.getElementById('addAllowance'),
+        addDeductionBtn: document.getElementById('addDeduction')
+    };
+
+    // Calculate total allowances
+    function calculateTotalAllowance(baseSalary) {
+        let total = 0;
+
         document.querySelectorAll('.allowance-select').forEach(select => {
-            if (select.value && select.value !== '') {
-                const selected = select.selectedOptions[0];
-                const type = selected.getAttribute('data-type');
-
-                console.log('Allowance - Type:', type, 'Selected Value:', select.value);
+            if (select.value) {
+                const option = select.selectedOptions[0];
+                const type = option.getAttribute('data-type');
 
                 if (type === 'percentage') {
-                    const percentStr = selected.getAttribute('data-percentage');
-                    console.log('Raw percentage string:', percentStr);
-
-                    // Parse percentage - handle decimal values like 15.00
-                    const percent = parseFloat(percentStr);
-                    console.log('Parsed percentage:', percent);
-
-                    if (!isNaN(percent) && percent >= 0) {
-                        const calculatedAmount = (base * percent) / 100;
-                        totalAllowance += calculatedAmount;
-                        console.log('Allowance - Percentage:', percent + '%', 'Base:', base, 'Calculated:', calculatedAmount);
-                    } else {
-                        console.log('Invalid percentage value for allowance:', percent);
-                    }
+                    const percent = parseFloat(option.getAttribute('data-percentage')) || 0;
+                    total += (baseSalary * percent) / 100;
                 } else if (type === 'fixed') {
-                    const amountStr = selected.getAttribute('data-amount');
-                    const amount = parseFloat(amountStr);
-                    if (!isNaN(amount) && amount >= 0) {
-                        totalAllowance += amount;
-                        console.log('Allowance - Fixed amount:', amount);
-                    }
+                    const amount = parseFloat(option.getAttribute('data-amount')) || 0;
+                    total += amount;
                 }
             }
         });
 
-        let totalDeduction = 0;
+        return total;
+    }
+
+    // Calculate total deductions (excluding late penalty)
+    function calculateTotalDeduction(baseSalary) {
+        let total = 0;
+
         document.querySelectorAll('.deduction-select').forEach(select => {
-            if (select.value && select.value !== '') {
-                const selected = select.selectedOptions[0];
-                const type = selected.getAttribute('data-type');
-
-                console.log('Deduction - Type:', type, 'Selected Value:', select.value);
+            if (select.value) {
+                const option = select.selectedOptions[0];
+                const type = option.getAttribute('data-type');
 
                 if (type === 'percentage') {
-                    const percentStr = selected.getAttribute('data-percentage');
-                    console.log('Raw percentage string:', percentStr);
-
-                    // Parse percentage - handle decimal values like 15.00
-                    const percent = parseFloat(percentStr);
-                    console.log('Parsed percentage:', percent);
-
-                    if (!isNaN(percent) && percent >= 0) {
-                        const calculatedAmount = (base * percent) / 100;
-                        totalDeduction += calculatedAmount;
-                        console.log('Deduction - Percentage:', percent + '%', 'Base:', base, 'Calculated:', calculatedAmount);
-                    } else {
-                        console.log('Invalid percentage value for deduction:', percent);
-                    }
+                    const percent = parseFloat(option.getAttribute('data-percentage')) || 0;
+                    total += (baseSalary * percent) / 100;
                 } else if (type === 'fixed') {
-                    const amountStr = selected.getAttribute('data-amount');
-                    const amount = parseFloat(amountStr);
-                    if (!isNaN(amount) && amount >= 0) {
-                        totalDeduction += amount;
-                        console.log('Deduction - Fixed amount:', amount);
-                    }
+                    const amount = parseFloat(option.getAttribute('data-amount')) || 0;
+                    total += amount;
                 }
             }
         });
 
-        const netSalary = base + overtime + totalAllowance - totalDeduction;
-        document.getElementById('net_salary').value = Math.round(netSalary);
+        return total;
+    }
 
-        // Debug log komprehensif
+    // Update net salary calculation
+    function updateNetSalary() {
+        const baseSalary = parseFloat(elements.baseSalaryInput.value) || 0;
+        const overtime = parseFloat(elements.overtimeInput.value) || 0;
+
+        const totalAllowance = calculateTotalAllowance(baseSalary);
+        const totalDeduction = calculateTotalDeduction(baseSalary);
+        const latePenalty = totalTelatDays * LATE_PENALTY_PER_DAY;
+
+        // Net salary sudah termasuk pengurangan late penalty
+        const netSalary = baseSalary + overtime + totalAllowance - totalDeduction - latePenalty;
+
+        elements.netSalaryInput.value = Math.round(netSalary);
+
+        // Debug log
         console.log('=== Perhitungan Gaji ===');
-        console.log('Base Salary:', base);
+        console.log('Base Salary:', baseSalary);
         console.log('Overtime:', overtime);
         console.log('Total Allowance:', totalAllowance);
-        console.log('Total Deduction:', totalDeduction);
-        console.log('Net Salary:', netSalary);
+        console.log('Total Deduction (manual):', totalDeduction);
+        console.log('Late Days:', totalTelatDays);
+        console.log('Late Penalty (client-side only):', latePenalty);
+        console.log('Net Salary (final):', netSalary);
         console.log('=====================');
     }
 
-    // Event listeners untuk input
-    const baseSalaryInput = document.getElementById('base_salary');
-    const overtimeInput = document.getElementById('overtime');
+    // Fetch attendance data
+    function fetchAttendanceData() {
+        const userId = elements.userSelect.value;
+        const period = elements.periodInput.value;
 
-    if (baseSalaryInput) {
-        baseSalaryInput.addEventListener('input', updateNetSalary);
-        baseSalaryInput.addEventListener('keyup', updateNetSalary);
-        baseSalaryInput.addEventListener('change', updateNetSalary);
+        if (!userId || !period) {
+            resetAttendanceDisplay();
+            return;
+        }
+
+        // Fetch attendance
+        fetch(`/get-absensi?user_id=${userId}&period=${period}`)
+            .then(response => response.json())
+            .then(data => {
+                elements.absensiDisplay.value = `${data.total_absensi} hari`;
+                elements.totalAttendanceInput.value = data.total_absensi;
+            })
+            .catch(error => {
+                console.error('Error fetching absensi:', error);
+                elements.absensiDisplay.value = 'Gagal mengambil data';
+                elements.totalAttendanceInput.value = 0;
+            });
+
+        // Fetch leave data
+        fetch(`/get-cuti?user_id=${userId}&period=${period}`)
+            .then(response => response.json())
+            .then(data => {
+                elements.cutiDisplay.value = `${data.total_cuti} hari`;
+            })
+            .catch(error => {
+                console.error('Error fetching cuti:', error);
+                elements.cutiDisplay.value = 'Gagal mengambil data';
+            });
+
+        // Fetch late data
+        fetch(`/get-keterlambatan?user_id=${userId}&period=${period}`)
+            .then(response => response.json())
+            .then(data => {
+                totalTelatDays = data.total_telat;
+                elements.telatDisplay.value = `${data.total_telat} hari`;
+                updateNetSalary(); // Recalculate after getting late data
+            })
+            .catch(error => {
+                console.error('Error fetching keterlambatan:', error);
+                elements.telatDisplay.value = 'Gagal mengambil data';
+                totalTelatDays = 0;
+                updateNetSalary();
+            });
     }
 
-    if (overtimeInput) {
-        overtimeInput.addEventListener('input', updateNetSalary);
-        overtimeInput.addEventListener('keyup', updateNetSalary);
-        overtimeInput.addEventListener('change', updateNetSalary);
+    // Reset attendance display
+    function resetAttendanceDisplay() {
+        elements.absensiDisplay.value = '0 hari';
+        elements.cutiDisplay.value = '0 hari';
+        elements.telatDisplay.value = '0 hari';
+        elements.totalAttendanceInput.value = 0;
+        totalTelatDays = 0;
+        updateNetSalary();
     }
 
-    // Event delegation untuk select yang dinamis
-    document.getElementById('allowance-container').addEventListener('change', function(e) {
-        if (e.target.classList.contains('allowance-select')) {
-            console.log('Allowance changed'); // Debug
-            updateNetSalary();
-        }
-    });
-
-    document.getElementById('deduction-container').addEventListener('change', function(e) {
-        if (e.target.classList.contains('deduction-select')) {
-            console.log('Deduction changed'); // Debug
-            updateNetSalary();
-        }
-    });
-
-    // Tambah tunjangan
-    document.getElementById('addAllowance').addEventListener('click', function () {
+    // Add new allowance row
+    function addAllowanceRow() {
         const originalRow = document.querySelector('.allowance-row');
-        const row = originalRow.cloneNode(true);
+        const newRow = originalRow.cloneNode(true);
 
-        // Reset pilihan
-        const select = row.querySelector('select');
+        const select = newRow.querySelector('select');
         select.value = '';
-        select.selectedIndex = 0;
 
-        // Ganti tombol + dengan tombol -
-        const button = row.querySelector('button');
+        const button = newRow.querySelector('button');
         button.className = 'btn btn-danger remove-allowance';
         button.textContent = '-';
 
-        document.getElementById('allowance-container').appendChild(row);
-    });
+        elements.allowanceContainer.appendChild(newRow);
+    }
 
-    // Tambah potongan
-    document.getElementById('addDeduction').addEventListener('click', function () {
+    // Add new deduction row
+    function addDeductionRow() {
         const originalRow = document.querySelector('.deduction-row');
-        const row = originalRow.cloneNode(true);
+        const newRow = originalRow.cloneNode(true);
 
-        // Reset pilihan
-        const select = row.querySelector('select');
+        const select = newRow.querySelector('select');
         select.value = '';
-        select.selectedIndex = 0;
 
-        // Ganti tombol + dengan tombol -
-        const button = row.querySelector('button');
+        const button = newRow.querySelector('button');
         button.className = 'btn btn-danger remove-deduction';
         button.textContent = '-';
 
-        document.getElementById('deduction-container').appendChild(row);
+        elements.deductionContainer.appendChild(newRow);
+    }
+
+    // Event listeners
+    elements.userSelect.addEventListener('change', fetchAttendanceData);
+    elements.periodInput.addEventListener('change', fetchAttendanceData);
+
+    elements.baseSalaryInput.addEventListener('input', updateNetSalary);
+    elements.overtimeInput.addEventListener('input', updateNetSalary);
+
+    elements.allowanceContainer.addEventListener('change', function(e) {
+        if (e.target.classList.contains('allowance-select')) {
+            updateNetSalary();
+        }
     });
 
-    // Hapus tunjangan/potongan
-    document.addEventListener('click', function (e) {
+    elements.deductionContainer.addEventListener('change', function(e) {
+        if (e.target.classList.contains('deduction-select')) {
+            updateNetSalary();
+        }
+    });
+
+    elements.addAllowanceBtn.addEventListener('click', addAllowanceRow);
+    elements.addDeductionBtn.addEventListener('click', addDeductionRow);
+
+    // Remove allowance/deduction rows
+    document.addEventListener('click', function(e) {
         if (e.target.classList.contains('remove-allowance')) {
             e.target.closest('.allowance-row').remove();
             updateNetSalary();
@@ -295,48 +357,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Inisialisasi perhitungan
-    setTimeout(function() {
-        updateNetSalary();
-    }, 100);
+    // Initialize
+    setTimeout(updateNetSalary, 100);
 });
 </script>
 
-<!-- JS Fetch Absen -->
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const userSelect = document.getElementById('users_id');
-    const periodInput = document.getElementById('period');
-    const absensiDisplay = document.getElementById('absensi_display');
-    const totalAttendanceInput = document.getElementById('total_attendance');
-
-    function fetchAbsensi() {
-        const userId = userSelect.value;
-        const period = periodInput.value;
-
-        if (userId && period) {
-            fetch(`/get-absensi?user_id=${userId}&period=${period}`)
-                .then(response => response.json())
-                .then(data => {
-                    // Update display field
-                    absensiDisplay.value = `${data.total_absensi} hari`;
-
-                    // Update hidden field untuk dikirim ke server
-                    totalAttendanceInput.value = data.total_absensi;
-                })
-                .catch(error => {
-                    console.error('Error fetching absensi:', error);
-                    absensiDisplay.value = 'Gagal mengambil data';
-                    totalAttendanceInput.value = 0;
-                });
-        } else {
-            absensiDisplay.value = '0 hari';
-            totalAttendanceInput.value = 0;
-        }
-    }
-
-    userSelect.addEventListener('change', fetchAbsensi);
-    periodInput.addEventListener('change', fetchAbsensi);
-});
-</script>
 @endsection
